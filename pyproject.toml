@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hf-text-summary"
+version = "0.1.0"
+description = "Summarize text, extract key phrases, and infer intent with Hugging Face models."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "Your Team" }]
+dependencies = [
+  "streamlit>=1.33",
+  "transformers>=4.41",
+  "torch>=2.1",
+  "sentencepiece>=0.2.0",
+  "yake>=0.4.8",
+]
+
+[project.scripts]
+hf-text-summary = "hf_text_summary.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["hf_text_summary"]
