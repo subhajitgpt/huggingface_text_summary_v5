@@ -150,12 +150,6 @@ def _extract_pdf_ocr(data: bytes) -> str:
     if joined:
         return joined
 
-    if missing_python_docx:
-        raise ValueError(
-            "Missing dependency 'python-docx' required to reliably read DOCX files. "
-            "Install with: pip install -e .  (or: pip install python-docx)"
-        )
-
     return ""
 
 
