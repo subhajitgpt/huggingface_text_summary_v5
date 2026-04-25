@@ -69,8 +69,12 @@ def _extract_pdf(data: bytes) -> str:
     try:
         from pypdf import PdfReader
     except ModuleNotFoundError as e:
-        # If pypdf isn't installed, still allow OCR-only extraction when optional
-        # OCR dependencies + the Tesseract binary are present.
+        # If pypdf isn't installed, try PyMuPDF for text-based PDFs first.
+        txt = _extract_pdf_pymupdf(data)
+        if txt:
+            return txt
+
+        # Then try OCR (best-effort) for scanned/image-only PDFs.
         ocr = _extract_pdf_ocr(data)
         if ocr:
             return ocr
@@ -78,6 +82,7 @@ def _extract_pdf(data: bytes) -> str:
         raise ValueError(
             "Missing dependency 'pypdf' required to read PDFs. "
             "Install with: pip install -e .  (or: pip install pypdf). "
+            "Alternative: install PyMuPDF (pip install pymupdf). "
             "For scanned/image-only PDFs you can enable OCR: pip install -e '.[ocr]' "
             "and install the Tesseract OCR binary."
         ) from e
@@ -103,9 +108,40 @@ def _extract_pdf(data: bytes) -> str:
     if joined:
         return joined
 
+    # Fallback: try PyMuPDF extraction (can work better for some PDFs).
+    txt = _extract_pdf_pymupdf(data)
+    if txt:
+        return txt
+
     # Fallback: OCR for scanned/image-only PDFs (best-effort, optional deps).
     ocr = _extract_pdf_ocr(data)
     return ocr or ""
+
+
+def _extract_pdf_pymupdf(data: bytes) -> str:
+    """Extract text from a PDF using PyMuPDF if available (no OCR)."""
+
+    if not data:
+        return ""
+
+    try:
+        import fitz  # PyMuPDF  # type: ignore
+    except Exception:
+        return ""
+
+    parts: list[str] = []
+    try:
+        with fitz.open(stream=data, filetype="pdf") as doc:
+            for i in range(len(doc)):
+                page = doc.load_page(i)
+                txt = page.get_text("text") or ""
+                txt = txt.strip()
+                if txt:
+                    parts.append(txt)
+    except Exception:
+        return ""
+
+    return "\n\n".join(parts).strip()
 
 
 def _extract_pdf_ocr(data: bytes) -> str:
