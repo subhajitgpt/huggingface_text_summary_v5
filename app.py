@@ -8,6 +8,42 @@ from typing import List
 import streamlit as st
 
 
+def _pdf_supported_runtime() -> bool:
+    """True if we can extract text from PDFs in this runtime."""
+
+    # Primary path: pypdf
+    try:
+        import pypdf  # noqa: F401
+
+        return True
+    except Exception:
+        pass
+
+    # Fallback path: OCR (optional)
+    try:
+        import pytesseract  # type: ignore
+
+        pytesseract.get_tesseract_version()
+
+        import fitz  # type: ignore  # PyMuPDF
+        from PIL import Image  # noqa: F401
+
+        return True
+    except Exception:
+        return False
+
+
+def _docx_supported_runtime() -> bool:
+    """True if we can reliably extract text from DOCX in this runtime."""
+
+    try:
+        import docx  # noqa: F401
+
+        return True
+    except Exception:
+        return False
+
+
 def _cuda_available() -> bool:
     try:
         import torch
@@ -137,10 +173,16 @@ with col_left:
         )
 
         if input_mode == "File":
+            upload_types = ["txt", "md", "doc"]
+            if _docx_supported_runtime():
+                upload_types.insert(0, "docx")
+            if _pdf_supported_runtime():
+                upload_types.insert(0, "pdf")
+
             st.file_uploader(
                 "Upload a file",
-                type=["pdf", "docx", "txt", "md", "doc"],
-                help="Supported: PDF, DOCX, TXT/MD. Note: scanned/image-only PDFs may have no extractable text unless OCR is enabled (optional). Legacy .doc is not supported; upload .docx or PDF.",
+                type=upload_types,
+                help="Supported: TXT/MD and (if installed) PDF/DOCX. Note: scanned/image-only PDFs may have no extractable text unless OCR is enabled (optional). Legacy .doc is not supported; upload .docx or PDF.",
                 key="uploaded_file",
             )
             # Keep the text box available as a fallback / preview.
