@@ -34,8 +34,10 @@ COPY app.py /app/app.py
 
 RUN pip install --upgrade pip setuptools wheel \
     ; pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2.1" \
+    ; pip install --no-cache-dir pypdf python-docx pytesseract pymupdf pillow \
     ; pip install --no-cache-dir ".[ocr]" \
-    ; python -c "import pypdf, docx; print('deps-ok')"
+    ; python -c "import pypdf, docx; print('deps-ok')" \
+    ; python -c "import pytesseract, fitz; print('ocr-deps-ok')"
 
 EXPOSE 8501
 
