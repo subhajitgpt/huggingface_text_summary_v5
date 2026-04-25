@@ -29,15 +29,18 @@ RUN apt-get update \
     ; rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md /app/
+COPY requirements.txt /app/requirements.txt
 COPY src /app/src
 COPY app.py /app/app.py
 
 RUN pip install --upgrade pip setuptools wheel \
     ; pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2.1" \
-    ; pip install --no-cache-dir pypdf python-docx pytesseract pymupdf pillow \
-    ; pip install --no-cache-dir ".[ocr]" \
+    ; pip install --no-cache-dir -r requirements.txt \
+    ; pip install --no-cache-dir pytesseract pymupdf pillow \
+    ; pip install --no-cache-dir . \
     ; python -c "import pypdf, docx; print('deps-ok')" \
-    ; python -c "import pytesseract, fitz; print('ocr-deps-ok')"
+    ; python -c "import fitz; print('pymupdf-ok')" \
+    ; python -c "import pytesseract; print('pytesseract-ok')"
 
 EXPOSE 8501
 
