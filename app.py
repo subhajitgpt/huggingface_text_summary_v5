@@ -8,42 +8,6 @@ from typing import List
 import streamlit as st
 
 
-def _pdf_supported_runtime() -> bool:
-    """True if we can extract text from PDFs in this runtime."""
-
-    # Primary path: pypdf
-    try:
-        import pypdf  # noqa: F401
-
-        return True
-    except Exception:
-        pass
-
-    # Fallback path: OCR (optional)
-    try:
-        import pytesseract  # type: ignore
-
-        pytesseract.get_tesseract_version()
-
-        import fitz  # type: ignore  # PyMuPDF
-        from PIL import Image  # noqa: F401
-
-        return True
-    except Exception:
-        return False
-
-
-def _docx_supported_runtime() -> bool:
-    """True if we can reliably extract text from DOCX in this runtime."""
-
-    try:
-        import docx  # noqa: F401
-
-        return True
-    except Exception:
-        return False
-
-
 def _cuda_available() -> bool:
     try:
         import torch
@@ -152,6 +116,7 @@ with st.sidebar:
     st.caption("Models are downloaded once and cached locally by Transformers.")
 
 run = False
+uploaded_now = None
 
 col_left, col_right = st.columns([3, 2], gap="large")
 
@@ -173,16 +138,11 @@ with col_left:
         )
 
         if input_mode == "File":
-            upload_types = ["txt", "md", "doc"]
-            if _docx_supported_runtime():
-                upload_types.insert(0, "docx")
-            if _pdf_supported_runtime():
-                upload_types.insert(0, "pdf")
-
-            st.file_uploader(
+            uploaded_now = st.file_uploader(
                 "Upload a file",
-                type=upload_types,
-                help="Supported: TXT/MD and (if installed) PDF/DOCX. Note: scanned/image-only PDFs may have no extractable text unless OCR is enabled (optional). Legacy .doc is not supported; upload .docx or PDF.",
+                type=["pdf", "docx", "txt", "md", "doc"],
+                accept_multiple_files=False,
+                help="Supported: PDF, DOCX, TXT/MD. Note: scanned/image-only PDFs may have no extractable text unless OCR is enabled (optional). Legacy .doc is not supported; upload .docx or PDF.",
                 key="uploaded_file",
             )
             # Keep the text box available as a fallback / preview.
@@ -217,10 +177,13 @@ if run:
 
     # If a file was uploaded, prefer its extracted text.
     if st.session_state.get("input_mode") == "File":
-        uploaded_now = st.session_state.get("uploaded_file")
-        if uploaded_now is not None:
+        uploaded = uploaded_now if uploaded_now is not None else st.session_state.get("uploaded_file")
+        if isinstance(uploaded, list):
+            uploaded = uploaded[0] if uploaded else None
+
+        if uploaded is not None:
             try:
-                cleaned = extract_text_from_bytes(uploaded_now.name, uploaded_now.getvalue()).strip()
+                cleaned = extract_text_from_bytes(uploaded.name, uploaded.getvalue()).strip()
             except Exception as e:
                 st.error(f"Failed to read uploaded file: {e}")
                 st.stop()
