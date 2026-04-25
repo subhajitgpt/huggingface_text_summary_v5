@@ -11,17 +11,28 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps (minimal)
+# System deps
+# - git: allows installing from VCS dependencies if ever added
+# - build-essential/cmake/pkg-config: helps when wheels aren't available (arm, slim)
+# - libxml2/libxslt: lxml fallback builds (python-docx dependency chain)
 RUN apt-get update \
-    ; apt-get install -y --no-install-recommends git \
+    ; apt-get install -y --no-install-recommends \
+        git \
+        build-essential \
+        cmake \
+        pkg-config \
+        libxml2-dev \
+        libxslt1-dev \
+        zlib1g-dev \
     ; rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml README.md /app/
 COPY src /app/src
 COPY app.py /app/app.py
 
-RUN pip install --upgrade pip \
-    ; pip install .
+RUN pip install --upgrade pip setuptools wheel \
+    ; pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu "torch>=2.1" \
+    ; pip install --no-cache-dir .
 
 EXPOSE 8501
 
